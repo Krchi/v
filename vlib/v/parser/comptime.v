@@ -196,6 +196,22 @@ fn (mut p Parser) comptime_call() ast.ComptimeCall {
 			pos:         start_pos.extend(p.prev_tok.pos())
 			args:        args
 		}
+	} else if method_name in ['compile_error', 'compile_warn'] {
+		expr := p.string_expr()
+		p.check(.rpar)
+		return ast.ComptimeCall{
+			scope:       unsafe { nil }
+			method_name: method_name
+			env_pos:     start_pos
+			pos:         start_pos.extend(p.prev_tok.pos())
+			args:        [
+				ast.CallArg{
+					expr:    expr
+					typ:     ast.string_type
+					ct_expr: true
+				},
+			]
+		}
 	} else if method_name == 'res' {
 		mut has_args := false
 		mut type_index := ''
