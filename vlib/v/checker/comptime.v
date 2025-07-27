@@ -16,12 +16,26 @@ fn (mut c Checker) comptime_call(mut node ast.ComptimeCall) ast.Type {
 		node.left_type = c.expr(mut node.left)
 	}
 	if node.method_name == 'compile_error' {
-		value := c.eval_comptime_const_expr(node.args[0].expr, 0) or { ast.ComptTimeConstValue('') }
-		c.error('${value.string() or { '' }}', node.pos)
+		msg := if node.args_var.len > 0 {
+			node.args_var
+		} else {
+			value := c.eval_comptime_const_expr(node.args[0].expr, 0) or {
+				ast.ComptTimeConstValue('')
+			}
+			value.string() or { '' }
+		}
+		c.error(msg, node.pos)
 		return ast.void_type
 	} else if node.method_name == 'compile_warn' {
-		value := c.eval_comptime_const_expr(node.args[0].expr, 0) or { ast.ComptTimeConstValue('') }
-		c.warn('${value.string() or { '' }}', node.pos)
+		msg := if node.args_var.len > 0 {
+			node.args_var
+		} else {
+			value := c.eval_comptime_const_expr(node.args[0].expr, 0) or {
+				ast.ComptTimeConstValue('')
+			}
+			value.string() or { '' }
+		}
+		c.warn(msg, node.pos)
 		return ast.void_type
 	}
 	if node.is_env {
