@@ -614,11 +614,8 @@ fn (mut g Gen) infix_expr_in_op(node ast.InfixExpr) {
 	} else if right.unaliased_sym.kind == .map {
 		g.write('_IN_MAP(')
 		if !left.typ.is_ptr() {
-			styp := g.styp(if node.right_type.has_flag(.generic) && g.cur_concrete_types.len > 0 {
-				g.cur_concrete_types[0]
-			} else {
-				node.left_type
-			})
+			sym_map := g.table.sym(node.right_type)
+			styp := g.styp((sym_map.info as ast.Map).key_type)
 			g.write('ADDR(${styp}, ')
 			g.expr(node.left)
 			g.write(')')
