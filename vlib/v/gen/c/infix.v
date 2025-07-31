@@ -615,7 +615,7 @@ fn (mut g Gen) infix_expr_in_op(node ast.InfixExpr) {
 		g.write('_IN_MAP(')
 		if !left.typ.is_ptr() {
 			mut sym_map := g.table.sym(node.right_type)
-			for sym_map.info is ast.Alias {
+			if sym_map.info is ast.Alias {
 				sym_map = g.table.sym((sym_map.info as ast.Alias).parent_type)
 			}
 			styp := g.styp(if sym_map.info is ast.Map {
