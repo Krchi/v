@@ -1483,9 +1483,11 @@ fn (mut c Checker) fn_call(mut node ast.CallExpr, mut continue_check &bool) ast.
 		}
 		has_decompose = call_arg.expr is ast.ArrayDecompose
 		if has_decompose && i < func.params.len - 1 {
-			c.error('un array decompose', node.pos)
+			_, expected_typ_str := c.get_string_names_of(1, param.typ)
+			c.error('cannot use `array decompose` as `${expected_typ_str}` in argument ${i} to `${node.name}`',
+				call_arg.pos)
 		}
-        already_checked := node.language != .js && call_arg.expr is ast.CallExpr
+		already_checked := node.language != .js && call_arg.expr is ast.CallExpr
 		if func.is_variadic && i >= func.params.len - 1 {
 			param_sym := c.table.sym(param.typ)
 			mut expected_type := param.typ
