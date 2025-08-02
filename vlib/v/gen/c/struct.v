@@ -69,6 +69,11 @@ fn (mut g Gen) struct_init(node ast.StructInit) {
 	}
 	is_generic_default := sym.kind !in [.struct, .array_fixed] && node.typ.has_flag(.generic) // T{}
 	is_array := sym.kind in [.array_fixed, .array]
+	if g.styp(node.typ).contains('Array_fixed_string_3') {
+		ijk := 1
+		abc := 1
+		jjj := 1
+	}
 	if sym.kind == .array_fixed {
 		arr_info := sym.array_fixed_info()
 		is_array_fixed_struct_init = g.inside_return
@@ -149,6 +154,9 @@ fn (mut g Gen) struct_init(node ast.StructInit) {
 			g.write('&')
 		}
 		if is_array || const_msvc_init {
+			if g.inside_return && sym.kind == .array_fixed {
+				g.write('(${styp})')
+			}
 			if !is_array_fixed_struct_init {
 				g.write('{')
 			}
