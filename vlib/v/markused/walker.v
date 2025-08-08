@@ -552,8 +552,10 @@ fn (mut w Walker) expr(node_ ast.Expr) {
 			sym := w.table.final_sym(node.left_type)
 			if sym.info is ast.Map {
 				if node.is_setter && !w.uses_map_setter {
+					w.uses_map_setter = true
 					w.mark_builtin_map_method_as_used('set')
 				} else if !node.is_setter && !w.uses_map_getter {
+					w.uses_map_getter = true
 					w.mark_builtin_map_method_as_used('get')
 				}
 				w.mark_by_type(sym.info.key_type)
@@ -1572,7 +1574,7 @@ pub fn (mut w Walker) finalize(include_panic_deps bool) {
 		w.mark_const_as_used('none__')
 	}
 	if include_panic_deps || w.uses_external_type || w.uses_asserts || w.uses_debugger
-		|| w.uses_interp {
+		|| w.uses_map_getter || w.uses_interp {
 		if w.trace_enabled {
 			eprintln('>>>>> PANIC DEPS ${include_panic_deps} | external_type=${w.uses_external_type} | asserts=${w.uses_asserts} | dbg=${w.uses_debugger} interp=${w.uses_interp}')
 		}
