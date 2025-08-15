@@ -3019,8 +3019,8 @@ fn (mut c Checker) check_predicate_param(is_map bool, elem_typ ast.Type, node as
 	mut arg_expr := node.args[0].expr
 	match mut arg_expr {
 		ast.AnonFn {
-			if arg_expr.decl.return_type.has_flag(.option) {
-				c.error('option needs to be unwrapped before using it in map/filter',
+			if arg_expr.decl.return_type.has_flag(.result) {
+				c.error('result needs to be unwrapped before using it in map/filter',
 					node.args[0].pos)
 			}
 			if arg_expr.decl.params.len > 1 {
@@ -3041,8 +3041,8 @@ fn (mut c Checker) check_predicate_param(is_map bool, elem_typ ast.Type, node as
 					c.error('${arg_expr.name} does not exist', arg_expr.pos)
 					return
 				}
-				if func.return_type.has_flag(.option) {
-					c.error('option needs to be unwrapped before using it in map/filter',
+				if func.return_type.has_flag(.result) {
+					c.error('result needs to be unwrapped before using it in map/filter',
 						node.pos)
 				}
 				if func.params.len > 1 {
@@ -3061,8 +3061,8 @@ fn (mut c Checker) check_predicate_param(is_map bool, elem_typ ast.Type, node as
 					expr := arg_expr.obj.expr
 					if expr is ast.AnonFn {
 						// copied from above
-						if expr.decl.return_type.has_flag(.option) {
-							c.error('option needs to be unwrapped before using it in map/filter',
+						if expr.decl.return_type.has_flag(.result) {
+							c.error('result needs to be unwrapped before using it in map/filter',
 								arg_expr.pos)
 						}
 						if expr.decl.params.len > 1 {
