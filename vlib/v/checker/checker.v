@@ -5274,8 +5274,9 @@ fn (mut c Checker) check_dup_keys(node &ast.MapInit, map_key_type ast.Type) {
 	for i in 0 .. node.keys.len {
 		n := node.keys[i]
 		if v := c.eval_comptime_const_expr(n, 0) {
+			mut has_key := false
 			for k in keys {
-				has_key := match map_key_type {
+				has_key = match map_key_type {
 					ast.int_type, ast.i8_type, ast.i16_type, ast.i32_type, ast.i64_type {
 						v1 := k.i64()
 						v2 := v.i64()
@@ -5304,9 +5305,10 @@ fn (mut c Checker) check_dup_keys(node &ast.MapInit, map_key_type ast.Type) {
 				}
 				if has_key {
 					c.error('duplicate key "${n.str()}" in map literal', n.pos())
-				} else {
-					keys << v
 				}
+			}
+			if !has_key {
+				keys << v
 			}
 		}
 	}
