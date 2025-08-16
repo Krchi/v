@@ -5297,7 +5297,7 @@ fn (mut c Checker) check_dup_keys(node &ast.MapInit, map_key_type ast.Type) {
 					}
 					else {
 						if n is ast.EnumVal {
-							k == v
+							k == ast.ComptTimeConstValue(n.val) // k == v // cant work now
 						} else {
 							false
 						}
@@ -5308,7 +5308,11 @@ fn (mut c Checker) check_dup_keys(node &ast.MapInit, map_key_type ast.Type) {
 				}
 			}
 			if !has_key {
-				keys << v
+				if n is ast.EnumVal {
+					keys << n.val
+				} else {
+					keys << v
+				}
 			}
 		}
 	}
