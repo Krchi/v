@@ -5269,23 +5269,43 @@ fn (mut c Checker) offset_of(node ast.OffsetOf) ast.Type {
 	return ast.u32_type
 }
 
-fn (mut c Checker) check_dup_keys(node &ast.MapInit, i int) {
-	key_i := node.keys[i]
-	if key_i is ast.StringLiteral {
-		for j in 0 .. i {
-			key_j := node.keys[j]
-			if key_j is ast.StringLiteral {
-				if key_i.val == key_j.val {
-					c.error('duplicate key "${key_i.val}" in map literal', key_i.pos)
+fn (mut c Checker) check_dup_keys(node &ast.MapInit, map_key_type ast.Type) {
+	mut keys := []ast.ComptTimeConstValue{}
+	for i in 0 .. node.keys.len {
+		n := node.keys[i]
+		if v := c.eval_comptime_const_expr(n, 0) {
+			for k in keys {
+				has_key := match map_key_type {
+					ast.int_type, ast.i8_type, ast.i16_type, ast.i32_type, ast.i64_type {
+						v1 := k.i64()
+						v2 := v.i64()
+						v1 == v2
+					}
+					ast.u8_type, ast.u16_type, ast.u32_type, ast.u64_type {
+						v1 := k.u64()
+						v2 := v.u64()
+						v1 == v2
+					}
+					ast.f32_type, ast.f64_type {
+						v1 := k.f64()
+						v2 := v.f64()
+						v1 == v2
+					}
+					ast.rune_type, ast.string_type {
+						k == v
+					}
+					else {
+						if n is ast.EnumVal {
+							k == v
+						} else {
+							false
+						}
+					}
 				}
-			}
-		}
-	} else if key_i is ast.IntegerLiteral {
-		for j in 0 .. i {
-			key_j := node.keys[j]
-			if key_j is ast.IntegerLiteral {
-				if key_i.val == key_j.val {
-					c.error('duplicate key "${key_i.val}" in map literal', key_i.pos)
+				if has_key {
+					c.error('duplicate key "${n.str()}" in map literal', n.pos())
+				} else {
+					keys << v
 				}
 			}
 		}

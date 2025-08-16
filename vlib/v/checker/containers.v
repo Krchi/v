@@ -653,9 +653,7 @@ fn (mut c Checker) map_init(mut node ast.MapInit) ast.Type {
 			}
 		}
 		if same_key_type {
-			for i in 1 .. node.keys.len {
-				c.check_dup_keys(node, i)
-			}
+			c.check_dup_keys(node, map_key_type)
 		}
 	}
 	return node.typ
