@@ -5304,7 +5304,8 @@ fn (mut c Checker) check_dup_keys(node &ast.MapInit, map_key_type ast.Type) {
 					}
 				}
 				if has_key {
-					c.error('duplicate key "${n.str()}" in map literal', n.pos())
+					c.error('duplicate key "${if n is ast.StringLiteral { n.val } else { n.str() }}" in map literal',
+						n.pos())
 				}
 			}
 			if !has_key {
