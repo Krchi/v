@@ -206,7 +206,16 @@ pub fn (t &Table) fn_type_source_signature(f &Fn) string {
 }
 
 pub fn (t &Table) is_same_method(f &Fn, func &Fn) string {
-	if f.return_type != func.return_type {
+	exp_type_sym := t.sym(f.return_type)
+	got_type_sym := t.sym(func.return_type)
+
+	is_same_return_type := if exp_type_sym.kind == .array_fixed && got_type_sym.kind == .array_fixed {
+			(exp_type_sym.info as ArrayFixed).size == (got_type_sym.info as ArrayFixed).size && (exp_type_sym.info as ArrayFixed).elem_type == (got_type_sym.info as ArrayFixed).elem_type
+	} else {
+		f.return_type == func.return_type
+	}
+
+	if !is_same_return_type {
 		s := t.type_to_str(f.return_type)
 		return 'expected return type `${s}`'
 	}
