@@ -801,9 +801,8 @@ fn expr_is_single_line(expr ast.Expr) bool {
 			}
 		}
 		ast.ArrayInit {
-			line := expr.pos.line_nr
 			for e in expr.exprs {
-				if e.pos().line_nr != line || !expr_is_single_line(e) {
+				if !expr_is_single_line(e) {
 					return false
 				}
 			}
@@ -1795,6 +1794,9 @@ pub fn (mut f Fmt) sum_type_decl(node ast.SumTypeDecl) {
 		}
 		f.write(variant.name)
 		if node.variants[variant.id].end_comments.len > 0 && is_multiline {
+			if node.variants[i].pos.line_nr != node.variants[variant.id].end_comments[0].pos.line_nr {
+				f.write('\n\t')
+			}
 			f.comments(node.variants[variant.id].end_comments, has_nl: false)
 		}
 	}
