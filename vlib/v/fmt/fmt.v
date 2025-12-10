@@ -801,8 +801,9 @@ fn expr_is_single_line(expr ast.Expr) bool {
 			}
 		}
 		ast.ArrayInit {
+			line := expr.pos.line_nr
 			for e in expr.exprs {
-				if !expr_is_single_line(e) {
+				if e.pos().line_nr != line || !expr_is_single_line(e) {
 					return false
 				}
 			}
