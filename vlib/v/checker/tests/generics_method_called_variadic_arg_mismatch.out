@@ -5,3 +5,22 @@ vlib/v/checker/tests/generics_method_called_variadic_arg_mismatch.vv:8:4: error:
       |       ~~~~~~~~~~~~~~~~~~~~~
     9 | }
    10 |
+vlib/v/checker/tests/generics_method_called_variadic_arg_mismatch.vv:32:5: error: to pass `concat([Value(10.0)])` ([]Value) to `pay_value` (which accepts type `...Value`), use `...concat([Value(10.0)])`
+   30 |     sc.products_list()
+   31 |     arr := [Value(0.5)]
+   32 |     sc.pay_value(concat([Value(10.0)]))
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   33 |     sc.pay_value(concat([Value(10.0)], arr))
+   34 | }
+vlib/v/checker/tests/generics_method_called_variadic_arg_mismatch.vv:33:15: error: to pass `arr` ([]Value) to `concat` (which accepts type `...T`), use `...arr`
+   31 |     arr := [Value(0.5)]
+   32 |     sc.pay_value(concat([Value(10.0)]))
+   33 |     sc.pay_value(concat([Value(10.0)], arr))
+      |                  ~~~~~~~~~~~~~~~~~~~~~~~~~~
+   34 | }
+vlib/v/checker/tests/generics_method_called_variadic_arg_mismatch.vv:33:5: error: to pass `concat([Value(10.0)], arr)` ([]Value) to `pay_value` (which accepts type `...Value`), use `...concat([Value(10.0)], arr)`
+   31 |     arr := [Value(0.5)]
+   32 |     sc.pay_value(concat([Value(10.0)]))
+   33 |     sc.pay_value(concat([Value(10.0)], arr))
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   34 | }
