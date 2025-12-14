@@ -36,8 +36,11 @@ fn (mut g Gen) array_init(node ast.ArrayInit, var_name string) {
 		// `[1, 2, 3]`
 		elem_styp := g.styp(elem_type.typ)
 		noscan := g.check_noscan(elem_type.typ)
+
 		if elem_type.unaliased_sym.kind == .function {
 			g.write('builtin__new_array_from_c_array(${len}, ${len}, sizeof(voidptr), _MOV((voidptr[${len}]){')
+		} else if elem_sym.kind == .array_fixed {
+			g.write('builtin__new_array_from_c_array${noscan}(${len}, ${len}, sizeof(${elem_styp}), ')
 		} else {
 			g.write('builtin__new_array_from_c_array${noscan}(${len}, ${len}, sizeof(${elem_styp}), _MOV((${elem_styp}[${len}]){')
 		}
@@ -78,7 +81,10 @@ fn (mut g Gen) array_init(node ast.ArrayInit, var_name string) {
 				}
 			}
 		}
-		g.write('}))')
+		if elem_sym.kind != .array_fixed {
+			g.write('})')
+		}
+		g.write(')')
 		if g.is_shared {
 			g.write('}, sizeof(${shared_styp}))')
 		} else if is_amp {
