@@ -4070,9 +4070,9 @@ fn (mut c Checker) check_variadic_arg(arg_expr ast.Expr, typ ast.Type, expected_
 	expected_kind := c.table.sym(expected_type).kind
 	sum_type_needs_spread := expected_kind == .sum_type && is_single_array_arg
 	if kind == .array && !is_decompose && !allow_variadic_pass
-		&& (expected_kind != .sum_type || sum_type_needs_spread)
+		&& (expected_kind !in [.sum_type, .array] || sum_type_needs_spread)
 		&& ((!param_typ.has_flag(.generic) && expected_type != typ)
-		|| param_typ.has_flag(.generic)) {
+		|| (param_typ.has_flag(.generic))) {
 		c.error('to pass `${arg_expr}` (${styp}) to `${fn_name}` (which accepts type `...${elem_styp}`), use `...${arg_expr}`',
 			call_pos)
 	} else if is_decompose && !param_typ.has_flag(.generic) && expected_kind != .interface
