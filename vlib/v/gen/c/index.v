@@ -173,6 +173,8 @@ fn (mut g Gen) index_of_array(node ast.IndexExpr, sym ast.TypeSymbol) {
 	elem_sym := g.table.final_sym(elem_type)
 	elem_type_str := if elem_sym.kind == .function {
 		'voidptr'
+	} else if elem_sym.kind == .array_fixed {
+		'_v_${g.styp(info.elem_type)}'
 	} else {
 		g.styp(info.elem_type)
 	}
