@@ -173,8 +173,6 @@ fn (mut g Gen) index_of_array(node ast.IndexExpr, sym ast.TypeSymbol) {
 	elem_sym := g.table.final_sym(elem_type)
 	elem_type_str := if elem_sym.kind == .function {
 		'voidptr'
-	} else if elem_sym.kind == .array_fixed {
-		'_v_${g.styp(info.elem_type)}'
 	} else {
 		g.styp(info.elem_type)
 	}
@@ -336,7 +334,11 @@ fn (mut g Gen) index_of_array(node ast.IndexExpr, sym ast.TypeSymbol) {
 			opt_elem_type := g.styp(elem_type.set_flag(.option))
 			g.writeln('${opt_elem_type} ${tmp_opt} = {0};')
 			g.writeln('if (${tmp_opt_ptr}) {')
-			g.writeln('\t*((${elem_type_str}*)&${tmp_opt}.data) = *((${elem_type_str}*)${tmp_opt_ptr});')
+			if elem_sym.kind == .array_fixed {
+				g.writeln('\t*((_v_${elem_type_str}*)&${tmp_opt}.data) = *((_v_${elem_type_str}*)${tmp_opt_ptr});')
+			} else {
+				g.writeln('\t*((${elem_type_str}*)&${tmp_opt}.data) = *((${elem_type_str}*)${tmp_opt_ptr});')
+			}
 			g.writeln('} else {')
 			g.writeln('\t${tmp_opt}.state = 2; ${tmp_opt}.err = builtin___v_error(_S("array index out of range"));')
 			g.writeln('}')
