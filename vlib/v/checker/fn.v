@@ -2009,7 +2009,9 @@ fn (mut c Checker) fn_call(mut node ast.CallExpr, mut continue_check &bool) ast.
 		}
 		return ret_type
 	}
-	c.register_trace_call(node, func)
+	if !node.should_be_skipped {
+		c.register_trace_call(node, func)
+	}
 	return func.return_type
 }
 
