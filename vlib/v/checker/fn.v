@@ -2009,16 +2009,14 @@ fn (mut c Checker) fn_call(mut node ast.CallExpr, mut continue_check &bool) ast.
 		}
 		return ret_type
 	}
-	if !node.should_be_skipped {
-		c.register_trace_call(node, func)
-	}
+	c.register_trace_call(node, func)
 	return func.return_type
 }
 
 // register_trace_call registers the wrapper funcs for calling funcs for callstack feature
 fn (mut c Checker) register_trace_call(node &ast.CallExpr, func &ast.Fn) {
 	if !(c.pref.is_callstack || c.pref.is_trace) || c.table.cur_fn == unsafe { nil }
-		|| node.language != .v {
+		|| node.language != .v || node.should_be_skipped {
 		return
 	}
 	if node.name in ['v.debug.callstack', 'v.debug.add_after_call', 'v.debug.add_before_call',
