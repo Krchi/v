@@ -386,9 +386,14 @@ fn (mut g Gen) if_expr(node ast.IfExpr) {
 						left_var_name := c_name(branch.cond.vars[0].name)
 						if is_auto_heap {
 							g.writeln('\t${base_type}* ${left_var_name} = HEAP(${base_type}, *(${base_type}*)${var_name}.data);')
-						} else if base_type.starts_with('Array_fixed') {
-							g.writeln('\t${base_type} ${left_var_name} = {0};')
-							g.writeln('memcpy(${left_var_name}, (${base_type}*)${var_name}.data, sizeof(${base_type}));')
+						} else if g.table.sym(branch.cond.expr_type).kind == .array_fixed {
+							new_type := if base_type.starts_with('_v_') {
+								base_type.replace_once('_v_', '')
+							} else {
+								base_type
+							}
+							g.writeln('\t${new_type} ${left_var_name} = {0};')
+							g.writeln('\tmemcpy(${left_var_name}, (${new_type}*)${var_name}.data, sizeof(${new_type}));')
 						} else {
 							dot_or_ptr := if !branch.cond.expr_type.has_flag(.option_mut_param_t) {
 								'.'
