@@ -91,6 +91,12 @@ fn (mut g Gen) need_tmp_var_in_expr(expr ast.Expr) bool {
 				}
 			}
 		}
+		ast.DumpExpr {
+			sym := g.table.sym(expr.expr_type)
+			if sym.kind == .array_fixed {
+				return sym.array_fixed_info().is_fn_ret
+			}
+		}
 		ast.Ident {
 			return expr.or_expr.kind != .absent
 		}
@@ -382,12 +388,13 @@ fn (mut g Gen) if_expr(node ast.IfExpr) {
 							is_auto_heap = v.is_auto_heap
 						}
 					}
+					sym := g.table.sym(branch.cond.expr_type)
 					if branch.cond.vars.len == 1 {
 						left_var_name := c_name(branch.cond.vars[0].name)
 						if is_auto_heap {
 							g.writeln('\t${base_type}* ${left_var_name} = HEAP(${base_type}, *(${base_type}*)${var_name}.data);')
-						} else if g.table.sym(branch.cond.expr_type).kind == .array_fixed {
-							new_type := if base_type.starts_with('_v_') {
+						} else if sym.kind == .array_fixed {
+							new_type := if sym.array_fixed_info().is_fn_ret {
 								base_type.replace_once('_v_', '')
 							} else {
 								base_type
@@ -403,7 +410,6 @@ fn (mut g Gen) if_expr(node ast.IfExpr) {
 							g.writeln('\t${base_type} ${left_var_name} = *(${base_type}*)${var_name}${dot_or_ptr}data;')
 						}
 					} else if branch.cond.vars.len > 1 {
-						sym := g.table.sym(branch.cond.expr_type)
 						if sym.info is ast.MultiReturn {
 							if sym.info.types.len == branch.cond.vars.len {
 								for vi, var in branch.cond.vars {

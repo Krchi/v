@@ -3,11 +3,13 @@ module c
 import v.ast
 
 fn (mut g Gen) new_ctemp_var(expr ast.Expr, expr_type ast.Type) ast.CTempVar {
+	sym := g.table.sym(expr_type)
 	return ast.CTempVar{
-		name:   g.new_tmp_var()
-		typ:    expr_type
-		is_ptr: expr_type.is_ptr()
-		orig:   expr
+		name:         g.new_tmp_var()
+		typ:          expr_type
+		is_ptr:       expr_type.is_ptr()
+		orig:         expr
+		is_fixed_ret: sym.kind == .array_fixed && sym.array_fixed_info().is_fn_ret
 	}
 }
 
@@ -18,6 +20,11 @@ fn (mut g Gen) new_ctemp_var_then_gen(expr ast.Expr, expr_type ast.Type) ast.CTe
 }
 
 fn (mut g Gen) gen_ctemp_var(mut tvar ast.CTempVar) {
+	inside_assign := g.inside_assign
+	g.inside_assign = true
+	defer(fn) {
+		g.inside_assign = inside_assign
+	}
 	styp := g.styp(tvar.typ)
 	final_sym := g.table.final_sym(tvar.typ)
 	if final_sym.info is ast.ArrayFixed {

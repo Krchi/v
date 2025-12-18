@@ -121,8 +121,9 @@ fn (mut g Gen) gen_expr_to_string(expr ast.Expr, etype ast.Type) {
 		is_dump_expr := expr is ast.DumpExpr
 		is_var_mut := expr.is_auto_deref_var()
 		str_fn_name := g.get_str_fn(exp_typ)
-		temp_var_needed := expr is ast.CallExpr
-			&& (expr.return_type.is_ptr() || g.table.sym(expr.return_type).is_c_struct())
+		temp_var_needed := (expr is ast.CallExpr && (expr.return_type.is_ptr()
+			|| g.table.sym(expr.return_type).is_c_struct()))
+			|| (is_dump_expr && g.need_tmp_var_in_expr(expr))
 		mut tmp_var := ''
 		if temp_var_needed {
 			tmp_var = g.new_tmp_var()
@@ -199,6 +200,9 @@ fn (mut g Gen) gen_expr_to_string(expr ast.Expr, etype ast.Type) {
 				g.write(tmp_var)
 			} else {
 				g.expr_with_cast(expr, typ, typ)
+			}
+			if is_dump_expr && sym.kind == .array_fixed && sym.array_fixed_info().is_fn_ret {
+				g.write('.ret_arr')
 			}
 		}
 

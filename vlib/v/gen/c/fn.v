@@ -1075,11 +1075,17 @@ fn (mut g Gen) call_expr(node ast.CallExpr) {
 				if g.assign_ct_type[node.pos.pos] != 0 && node.or_block.kind != .absent {
 					unwrapped_styp = g.styp(g.assign_ct_type[node.pos.pos].derive(node.return_type).clear_option_and_result())
 				}
+				mut styp_array_fixed := ''
+				sym_ret := g.table.sym(node.return_type)
+				if sym_ret.kind == .array_fixed && sym_ret.array_fixed_info().is_fn_ret {
+					styp_array_fixed = unwrapped_styp
+					unwrapped_styp = unwrapped_styp[3..]
+				}
 				if node.is_return_used {
 					// return value is used, so we need to write the unwrapped temporary var
 					if g.inside_dump_fn && g.table.sym(node.return_type).kind == .array_fixed
-						&& unwrapped_styp.starts_with('_v_') {
-						g.write('\n ${cur_line}(*(${unwrapped_styp}*)${tmp_opt}.data).ret_arr')
+						&& styp_array_fixed != '' {
+						g.write('\n ${cur_line}(*(${styp_array_fixed}*)${tmp_opt}.data).ret_arr')
 					} else {
 						g.write('\n ${cur_line}(*(${unwrapped_styp}*)${tmp_opt}.data)')
 					}
