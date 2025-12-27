@@ -3267,6 +3267,10 @@ fn (mut g Gen) expr_with_cast(expr ast.Expr, got_type_raw ast.Type, expected_typ
 		&& (expr as ast.ArrayInit).is_fixed) {
 		g.write('(voidptr)')
 	}
+	if got_sym.kind == .array_fixed && exp_sym.kind == .array_fixed
+		&& !got_sym.array_fixed_info().is_fn_ret && exp_sym.array_fixed_info().is_fn_ret {
+		g.write('*(${g.styp(expected_type)}*)')
+	}
 	// no cast
 	g.expr(expr)
 }
@@ -6463,20 +6467,13 @@ fn (mut g Gen) return_stmt(node ast.Return) {
 		// normal return
 		return_sym := g.table.final_sym(type0)
 		// `return opt_ok(expr)` for functions that expect an option
-		expr_type_is_opt := match expr0 {
+		expr_type_is_opt, expr_type_is_result := match expr0 {
 			ast.CallExpr {
-				expr0.return_type.has_flag(.option) && expr0.or_block.kind == .absent
+				expr0.return_type.has_flag(.option) && expr0.or_block.kind == .absent,
+					expr0.return_type.has_flag(.result) && expr0.or_block.kind == .absent
 			}
 			else {
-				type0.has_flag(.option)
-			}
-		}
-		expr_type_is_result := match expr0 {
-			ast.CallExpr {
-				expr0.return_type.has_flag(.result) && expr0.or_block.kind == .absent
-			}
-			else {
-				type0.has_flag(.result)
+				type0.has_flag(.option), type0.has_flag(.result)
 			}
 		}
 		if (fn_return_is_option && !expr_type_is_opt && return_sym.name != option_name)
@@ -6544,50 +6541,11 @@ fn (mut g Gen) return_stmt(node ast.Return) {
 					g.expr_with_opt(expr0, type0, ret_type)
 				}
 			} else {
-				if fn_return_is_fixed_array && !type0.has_option_or_result() {
-					if node.exprs[0] is ast.Ident {
-						g.writeln('{0};')
-						typ := if node.exprs[0].is_auto_deref_var() {
-							type0.deref()
-						} else {
-							type0
-						}
-						typ_sym := g.table.final_sym(typ)
-						if typ_sym.kind == .array_fixed
-							&& (typ_sym.info as ast.ArrayFixed).is_fn_ret {
-							g.write('memcpy(${tmpvar}.ret_arr, ${g.expr_string(expr0)}.ret_arr, sizeof(${g.styp(typ)}))')
-						} else {
-							g.write('memcpy(${tmpvar}.ret_arr, ${g.expr_string(expr0)}, sizeof(${g.styp(typ)}))')
-						}
-					} else if expr0 in [ast.ArrayInit, ast.StructInit] {
-						if expr0 is ast.ArrayInit && expr0.is_fixed && expr0.has_init {
-							if (expr0 as ast.ArrayInit).init_expr.is_literal() {
-								g.write('{.ret_arr=')
-								g.expr_with_cast(expr0, type0, ret_type)
-								g.writeln('};')
-							} else {
-								g.writeln('{0};')
-								g.write('memcpy(${tmpvar}.ret_arr, ')
-								g.expr_with_cast(expr0, type0, ret_type)
-								g.write(', sizeof(${g.styp(type0)}))')
-							}
-						} else {
-							g.writeln('{0};')
-							tmpvar2 := g.new_tmp_var()
-							g.write('${g.styp(type0)} ${tmpvar2} = ')
-							g.expr_with_cast(expr0, type0, ret_type)
-							g.writeln(';')
-							g.write('memcpy(${tmpvar}.ret_arr, ${tmpvar2}, sizeof(${g.styp(type0)}))')
-						}
-					} else {
-						g.writeln('{0};')
-						g.write('memcpy(${tmpvar}.ret_arr, ')
-						g.expr_with_cast(expr0, type0, ret_type)
-						g.write(', sizeof(${g.styp(type0)}))')
-					}
-				} else {
-					g.expr_with_cast(expr0, type0, ret_type)
-				}
+				// assign_op := g.assign_op
+				// g.assign_op = .unknown
+				g.expr_with_cast(expr0, type0, ret_type)
+				// g.write('/*1234${expr0}*/')
+				// g.assign_op = assign_op
 			}
 		}
 		if use_tmp_var {
