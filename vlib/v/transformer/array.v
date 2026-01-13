@@ -18,7 +18,7 @@ pub fn (mut t Transformer) array_init(mut node ast.ArrayInit) ast.Expr {
 	if node.has_init {
 		node.init_expr = t.expr(mut node.init_expr)
 	}
-	if t.pref.backend == .js_node || !t.pref.new_transform || t.skip_array_transform
+	if t.pref.backend == .js_node || node.elem_type.has_flag(.generic) || t.skip_array_transform
 		|| node.is_fixed || t.inside_in || node.has_len || node.has_cap || node.exprs.len == 0 {
 		return node
 	}
