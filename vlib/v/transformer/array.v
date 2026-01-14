@@ -45,7 +45,7 @@ pub fn (mut t Transformer) array_init(mut node ast.ArrayInit) ast.Expr {
 	} else {
 		ast.new_type(fixed_array_idx)
 	}
-	mut exprs := unsafe { node.exprs }
+	mut exprs := node.exprs.clone()
 	if node.elem_type == ast.string_type {
 		exprs = []
 		for expr in node.exprs {
