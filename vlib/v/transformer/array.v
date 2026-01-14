@@ -45,6 +45,29 @@ pub fn (mut t Transformer) array_init(mut node ast.ArrayInit) ast.Expr {
 	} else {
 		ast.new_type(fixed_array_idx)
 	}
+	mut exprs := unsafe { node.exprs }
+	if node.elem_type == ast.string_type {
+		exprs = []
+		for expr in node.exprs {
+			if expr !in [ast.IndexExpr, ast.CallExpr, ast.StringLiteral, ast.StringInterLiteral,
+				ast.InfixExpr] {
+				exprs << expr
+			} else {
+				ast.CallExpr{
+					name:        'string_clone'
+					mod:         'builtin'
+					scope:       unsafe { nil }
+					args:        [
+						ast.CallArg{
+							expr: expr
+							typ:  ast.string_type
+						},
+					]
+					return_type: node.typ
+				}
+			}
+		}
+	}
 	fixed_array_arg := ast.CallArg{
 		expr: ast.CastExpr{
 			expr:      ast.ArrayInit{
@@ -52,7 +75,7 @@ pub fn (mut t Transformer) array_init(mut node ast.ArrayInit) ast.Expr {
 				has_val:    true
 				typ:        fixed_array_typ
 				elem_type:  node.elem_type
-				exprs:      node.exprs
+				exprs:      exprs
 				expr_types: node.expr_types
 			}
 			typ:       ast.voidptr_type
