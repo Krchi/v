@@ -45,15 +45,14 @@ pub fn (mut t Transformer) array_init(mut node ast.ArrayInit) ast.Expr {
 	} else {
 		ast.new_type(fixed_array_idx)
 	}
-	mut exprs := node.exprs.clone()
-	if node.elem_type == ast.string_type {
-		exprs = []
+	mut exprs := if node.elem_type == ast.string_type {
+		mut arr := []ast.Expr{}
 		for expr in node.exprs {
 			if expr !in [ast.IndexExpr, ast.CallExpr, ast.StringLiteral, ast.StringInterLiteral,
 				ast.InfixExpr] {
-				exprs << expr
+				arr << expr
 			} else {
-				ast.CallExpr{
+				arr << ast.CallExpr{
 					name:        'string_clone'
 					mod:         'builtin'
 					scope:       unsafe { nil }
@@ -67,6 +66,9 @@ pub fn (mut t Transformer) array_init(mut node ast.ArrayInit) ast.Expr {
 				}
 			}
 		}
+		arr
+	} else {
+		node.exprs
 	}
 	fixed_array_arg := ast.CallArg{
 		expr: ast.CastExpr{
