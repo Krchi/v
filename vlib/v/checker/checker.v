@@ -6142,6 +6142,15 @@ pub fn (mut c Checker) update_unresolved_fixed_sizes() {
 				typ_sym.name = new_sym.name
 				typ_sym.cname = new_sym.cname
 				typ_sym.info = new_sym.info
+				// old_typ := c.cast_fixed_array_ret(stmt.return_type, c.table.final_sym(stmt.return_type))
+				ntyp := c.eval_array_fixed_sizes(mut size_expr, 0, ret_sym.info.elem_type)
+				info := c.table.sym(ntyp).array_fixed_info()
+				stmt.return_type = c.table.find_or_register_array_fixed(info.elem_type,
+					info.size, info.size_expr, true)
+				// mut typ_sym := c.table.type_symbols[old_typ.idx()]
+				// 	typ_sym.name = new_sym.name
+				// 	typ_sym.cname = new_sym.cname
+				// 	typ_sym.info = new_sym.info
 			}
 		} else if mut stmt is ast.TypeDecl { // alias
 			mut alias_decl := stmt
