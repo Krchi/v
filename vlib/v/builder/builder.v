@@ -162,11 +162,6 @@ pub fn (mut b Builder) middle_stages() ! {
 	if b.checker.should_abort {
 		return error('too many errors/warnings/notices')
 	}
-	if b.checker.unresolved_fixed_sizes.len > 0 {
-		util.timing_start('Checker.update_unresolved_fixed_sizes')
-		b.checker.update_unresolved_fixed_sizes()
-		util.timing_measure('Checker.update_unresolved_fixed_sizes')
-	}
 	if b.pref.check_only {
 		return error_with_code('stop_after_checker', 8001)
 	}

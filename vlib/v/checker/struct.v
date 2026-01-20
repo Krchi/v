@@ -86,7 +86,8 @@ fn (mut c Checker) struct_decl(mut node ast.StructDecl) {
 			sym := c.table.sym(field.typ)
 			if sym.info is ast.ArrayFixed && c.array_fixed_has_unresolved_size(sym.info) {
 				mut size_expr := unsafe { sym.info.size_expr }
-				field.typ = c.eval_array_fixed_sizes(mut size_expr, 0, sym.info.elem_type)
+				field.typ = c.eval_array_fixed_sizes(mut size_expr, 0, sym.info.elem_type,
+					false)
 				for mut symfield in struct_sym.info.fields {
 					if symfield.name == field.name {
 						symfield.typ = field.typ
@@ -1036,7 +1037,8 @@ or use an explicit `unsafe{ a[..] }`, if you do not want a copy of the slice.',
 					sym := c.table.sym(field.typ)
 					if sym.info is ast.ArrayFixed && c.array_fixed_has_unresolved_size(sym.info) {
 						mut size_expr := unsafe { sym.info.size_expr }
-						field.typ = c.eval_array_fixed_sizes(mut size_expr, 0, sym.info.elem_type)
+						field.typ = c.eval_array_fixed_sizes(mut size_expr, 0, sym.info.elem_type,
+							false)
 					}
 				}
 			}

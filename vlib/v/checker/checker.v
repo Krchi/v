@@ -76,23 +76,22 @@ pub mut:
 	in_for_count                int      // if checker is currently in a for loop
 	returns                     bool
 	scope_returns               bool
-	is_builtin_mod              bool        // true inside the 'builtin', 'os' or 'strconv' modules; TODO: remove the need for special casing this
-	is_just_builtin_mod         bool        // true only inside 'builtin'
-	is_generated                bool        // true for `@[generated] module xyz` .v files
-	unresolved_fixed_sizes      []&ast.Stmt // funcs with unresolved array fixed size e.g. fn func() [const1]int
-	inside_recheck              bool        // true when rechecking rhs assign statement
-	inside_unsafe               bool        // true inside `unsafe {}` blocks
-	inside_const                bool        // true inside `const ( ... )` blocks
-	inside_anon_fn              bool        // true inside `fn() { ... }()`
-	inside_lambda               bool        // true inside `|...| ...`
-	inside_ref_lit              bool        // true inside `a := &something`
-	inside_defer                bool        // true inside `defer {}` blocks
-	inside_return               bool        // true inside `return ...` blocks
-	inside_fn_arg               bool        // `a`, `b` in `a.f(b)`
-	inside_ct_attr              bool        // true inside `[if expr]`
-	inside_x_is_type            bool        // true inside the Type expression of `if x is Type {`
-	inside_x_matches_type       bool        // true inside the match branch of `match x.type { Type {} }`
-	anon_struct_should_be_mut   bool        // true when `mut var := struct { ... }` is used
+	is_builtin_mod              bool // true inside the 'builtin', 'os' or 'strconv' modules; TODO: remove the need for special casing this
+	is_just_builtin_mod         bool // true only inside 'builtin'
+	is_generated                bool // true for `@[generated] module xyz` .v files
+	inside_recheck              bool // true when rechecking rhs assign statement
+	inside_unsafe               bool // true inside `unsafe {}` blocks
+	inside_const                bool // true inside `const ( ... )` blocks
+	inside_anon_fn              bool // true inside `fn() { ... }()`
+	inside_lambda               bool // true inside `|...| ...`
+	inside_ref_lit              bool // true inside `a := &something`
+	inside_defer                bool // true inside `defer {}` blocks
+	inside_return               bool // true inside `return ...` blocks
+	inside_fn_arg               bool // `a`, `b` in `a.f(b)`
+	inside_ct_attr              bool // true inside `[if expr]`
+	inside_x_is_type            bool // true inside the Type expression of `if x is Type {`
+	inside_x_matches_type       bool // true inside the match branch of `match x.type { Type {} }`
+	anon_struct_should_be_mut   bool // true when `mut var := struct { ... }` is used
 	inside_generic_struct_init  bool
 	inside_integer_literal_cast bool // true inside `int(123)`
 	cur_struct_generic_types    []ast.Type
@@ -739,7 +738,9 @@ fn (mut c Checker) alias_type_decl(mut node ast.AliasTypeDecl) {
 		.array_fixed {
 			array_fixed_info := parent_typ_sym.info as ast.ArrayFixed
 			if c.array_fixed_has_unresolved_size(array_fixed_info) {
-				c.unresolved_fixed_sizes << &ast.TypeDecl(node)
+				mut size_expr := array_fixed_info.size_expr
+				c.eval_array_fixed_sizes(mut size_expr, 0, array_fixed_info.elem_type,
+					array_fixed_info.is_fn_ret)
 			}
 			c.check_alias_vs_element_type_of_parent(node, array_fixed_info.elem_type,
 				'fixed array')
@@ -2792,7 +2793,8 @@ fn (mut c Checker) global_decl(mut node ast.GlobalDecl) {
 			field_sym := c.table.sym(field.typ)
 			if field_sym.info is ast.ArrayFixed && c.array_fixed_has_unresolved_size(field_sym.info) {
 				mut size_expr := field_sym.info.size_expr
-				field.typ = c.eval_array_fixed_sizes(mut size_expr, 0, field_sym.info.elem_type)
+				field.typ = c.eval_array_fixed_sizes(mut size_expr, 0, field_sym.info.elem_type,
+					false)
 				mut v := c.file.global_scope.find_global(field.name) or {
 					panic('internal compiler error - could not find global in scope')
 				}
@@ -6124,52 +6126,6 @@ fn (mut c Checker) check_module_name_conflict(ident string, pos token.Pos) {
 		if prefix in c.short_module_names {
 			c.error('identifier cannot use prefix `${prefix}__` of imported module `${prefix}`',
 				pos)
-		}
-	}
-}
-
-// update_unresolved_fixed_sizes updates the unresolved type symbols for array fixed return type and alias type.
-pub fn (mut c Checker) update_unresolved_fixed_sizes() {
-	for mut stmt in c.unresolved_fixed_sizes {
-		if mut stmt is ast.FnDecl { // return types
-			ret_sym := c.table.sym(stmt.return_type)
-			if ret_sym.info is ast.ArrayFixed && c.array_fixed_has_unresolved_size(ret_sym.info) {
-				mut size_expr := ret_sym.info.size_expr
-				old_typ := c.cast_fixed_array_ret(stmt.return_type, c.table.final_sym(stmt.return_type))
-				stmt.return_type = c.eval_array_fixed_sizes(mut size_expr, 0, ret_sym.info.elem_type)
-				new_sym := c.table.sym(stmt.return_type)
-				mut typ_sym := c.table.type_symbols[old_typ.idx()]
-				typ_sym.name = new_sym.name
-				typ_sym.cname = new_sym.cname
-				typ_sym.info = new_sym.info
-				// old_typ := c.cast_fixed_array_ret(stmt.return_type, c.table.final_sym(stmt.return_type))
-				ntyp := c.eval_array_fixed_sizes(mut size_expr, 0, ret_sym.info.elem_type)
-				info := c.table.sym(ntyp).array_fixed_info()
-				stmt.return_type = c.table.find_or_register_array_fixed(info.elem_type,
-					info.size, info.size_expr, true)
-				// mut typ_sym := c.table.type_symbols[old_typ.idx()]
-				// 	typ_sym.name = new_sym.name
-				// 	typ_sym.cname = new_sym.cname
-				// 	typ_sym.info = new_sym.info
-			}
-		} else if mut stmt is ast.TypeDecl { // alias
-			mut alias_decl := stmt
-			if mut alias_decl is ast.AliasTypeDecl {
-				alias_sym := c.table.sym(alias_decl.parent_type)
-				if alias_sym.info is ast.ArrayFixed
-					&& c.array_fixed_has_unresolved_size(alias_sym.info) {
-					mut size_expr := alias_sym.info.size_expr
-					alias_decl.parent_type = c.eval_array_fixed_sizes(mut size_expr, 0,
-						alias_sym.info.elem_type)
-
-					// overwriting current alias type
-					mut typ_sym := c.table.type_symbols[alias_decl.typ.idx()]
-					typ_sym.parent_idx = alias_decl.parent_type.idx()
-					if mut typ_sym.info is ast.Alias {
-						typ_sym.info.parent_type = alias_decl.parent_type
-					}
-				}
-			}
 		}
 	}
 }

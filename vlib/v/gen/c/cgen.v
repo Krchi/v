@@ -2023,6 +2023,8 @@ pub fn (mut g Gen) write_array_fixed_return_types() {
 	g.typedefs.writeln('\n// BEGIN_array_fixed_return_typedefs')
 	g.type_definitions.writeln('\n// BEGIN_array_fixed_return_structs')
 
+	mut done := map[string]bool{}
+
 	for sym in fixed_arr_rets {
 		info := sym.info as ast.ArrayFixed
 		if info.size <= 0 {
@@ -2033,10 +2035,14 @@ pub fn (mut g Gen) write_array_fixed_return_types() {
 		if info.elem_type.is_ptr() {
 			fixed_elem_name += '*'.repeat(info.elem_type.nr_muls())
 		}
+		if done[sym.cname] or { false } {
+			continue
+		}
 		g.typedefs.writeln('typedef struct ${sym.cname} ${sym.cname};')
 		g.type_definitions.writeln('struct ${sym.cname} {')
 		g.type_definitions.writeln('\t${fixed_elem_name} ret_arr[${info.size}];')
 		g.type_definitions.writeln('};')
+		done[sym.cname] = true
 	}
 
 	g.typedefs.writeln('// END_array_fixed_return_typedefs\n')

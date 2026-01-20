@@ -213,7 +213,9 @@ fn (mut c Checker) fn_decl(mut node ast.FnDecl) {
 			}
 		}
 		if return_sym.info is ast.ArrayFixed && c.array_fixed_has_unresolved_size(return_sym.info) {
-			c.unresolved_fixed_sizes << node
+			mut size_expr := return_sym.info.size_expr
+			node.return_type = c.eval_array_fixed_sizes(mut size_expr, 0, return_sym.info.elem_type,
+				true)
 		}
 
 		final_return_sym := c.table.final_sym(node.return_type)
@@ -343,7 +345,8 @@ fn (mut c Checker) fn_decl(mut node ast.FnDecl) {
 			if arg_typ_sym.info is ast.ArrayFixed
 				&& c.array_fixed_has_unresolved_size(arg_typ_sym.info) {
 				mut size_expr := unsafe { arg_typ_sym.info.size_expr }
-				param.typ = c.eval_array_fixed_sizes(mut size_expr, 0, arg_typ_sym.info.elem_type)
+				param.typ = c.eval_array_fixed_sizes(mut size_expr, 0, arg_typ_sym.info.elem_type,
+					false)
 				mut v := node.scope.find_var(param.name) or { continue }
 				v.typ = param.typ
 			} else if arg_typ_sym.info is ast.Struct {

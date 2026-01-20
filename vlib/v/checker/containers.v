@@ -299,7 +299,7 @@ fn (mut c Checker) array_init(mut node ast.ArrayInit) ast.Type {
 		if sym.info !is ast.ArrayFixed
 			|| c.array_fixed_has_unresolved_size(sym.info as ast.ArrayFixed) {
 			mut size_expr := node.exprs[0]
-			node.typ = c.eval_array_fixed_sizes(mut size_expr, 0, node.elem_type)
+			node.typ = c.eval_array_fixed_sizes(mut size_expr, 0, node.elem_type, false)
 			if node.is_option {
 				node.typ = node.typ.set_flag(.option)
 			}
@@ -352,19 +352,29 @@ fn (mut c Checker) check_array_init_para_type(para string, mut expr ast.Expr, po
 
 // When the fixed array has multiple dimensions, it needs to be evaluated recursively.
 // `[const]int`, `[const][3]int`, `[3][const]int`, `[const + 1][3][const]int`...
-fn (mut c Checker) eval_array_fixed_sizes(mut size_expr ast.Expr, size int, elem_type ast.Type) ast.Type {
+fn (mut c Checker) eval_array_fixed_sizes(mut size_expr ast.Expr, size int, elem_type ast.Type, is_fn_ret bool) ast.Type {
+	mut fixed_size := i64(size)
+
+	if is_fn_ret {
+		mut idx := c.table.find_or_register_array_fixed(elem_type, size, size_expr, false)
+		if size <= 0 {
+			c.eval_array_fixed_sizes(mut size_expr, size, elem_type, false)
+		}
+		mut sym := c.table.sym(idx)
+		fixed_size = sym.array_fixed_info().size
+	}
+
 	elem_sym := c.table.sym(elem_type)
 	elem_info := elem_sym.info
 
 	new_elem_typ := if elem_sym.kind == .array_fixed {
 		mut info := elem_info as ast.ArrayFixed
 		mut elem_size_expr := unsafe { info.size_expr }
-		c.eval_array_fixed_sizes(mut elem_size_expr, info.size, info.elem_type)
+		c.eval_array_fixed_sizes(mut elem_size_expr, info.size, info.elem_type, false)
 	} else {
 		elem_type
 	}
 
-	mut fixed_size := i64(size)
 	if fixed_size <= 0 {
 		c.expr(mut size_expr)
 		match mut size_expr {
@@ -460,7 +470,11 @@ fn (mut c Checker) eval_array_fixed_sizes(mut size_expr ast.Expr, size int, elem
 	}
 
 	idx := c.table.find_or_register_array_fixed(new_elem_typ, int(fixed_size), size_expr,
-		false)
+		is_fn_ret)
+	if size <= 0 && fixed_size != 0 {
+		c.table.type_symbols[c.table.find_or_register_array_fixed(new_elem_typ, size,
+			size_expr, is_fn_ret)] = c.table.sym(idx)
+	}
 	return if elem_type.has_flag(.generic) {
 		ast.new_type(idx).set_flag(.generic)
 	} else {
