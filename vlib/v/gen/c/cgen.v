@@ -107,18 +107,19 @@ mut:
 	is_fn_index_call          bool
 	is_cc_msvc                bool // g.pref.ccompiler == 'msvc'
 	is_option_auto_heap       bool
-	vlines_path               string            // set to the proper path for generating #line directives
-	options_pos_forward       int               // insertion point to forward
-	options_forward           []string          // to forward
-	options                   map[string]string // to avoid duplicates
-	results_forward           []string          // to forward
-	results                   map[string]string // to avoid duplicates
-	done_options              shared []string   // to avoid duplicates
-	done_results              shared []string   // to avoid duplicates
-	chan_pop_options          map[string]string // types for `x := <-ch or {...}`
-	chan_push_options         map[string]string // types for `ch <- x or {...}`
-	mtxs                      string            // array of mutexes if the `lock` has multiple variables
-	tmp_var_ptr               map[string]bool   // indicates if the tmp var passed to or_block() is a ptr
+	vlines_path               string                 // set to the proper path for generating #line directives
+	options_pos_forward       int                    // insertion point to forward
+	options_forward           []string               // to forward
+	options                   map[string]string      // to avoid duplicates
+	results_forward           []string               // to forward
+	results                   map[string]string      // to avoid duplicates
+	done_fixed_arrays         shared map[string]bool // to avoid duplicates
+	done_options              shared []string        // to avoid duplicates
+	done_results              shared []string        // to avoid duplicates
+	chan_pop_options          map[string]string      // types for `x := <-ch or {...}`
+	chan_push_options         map[string]string      // types for `ch <- x or {...}`
+	mtxs                      string                 // array of mutexes if the `lock` has multiple variables
+	tmp_var_ptr               map[string]bool        // indicates if the tmp var passed to or_block() is a ptr
 	labeled_loops             map[string]&ast.Stmt
 	contains_ptr_cache        map[ast.Type]bool
 	inner_loop                &ast.Stmt = unsafe { nil }
@@ -1787,15 +1788,16 @@ pub fn (mut g Gen) write_typedef_types() {
 										g.type_definitions.writeln('${g.option_type_text(styp_elem,
 											elem_base)};')
 									}
-									if styp !in g.done_options {
-										g.type_definitions.writeln('typedef ${fixed} ${styp} [${len}];')
-										g.done_options << styp
-									}
 								}
 							} else {
-								g.type_definitions.writeln('typedef ${fixed} ${styp} [${len}];')
 								if info.elem_type.has_flag(.result) && base !in g.results_forward {
 									g.results_forward << base
+								}
+							}
+							lock g.done_fixed_arrays {
+								if !g.done_fixed_arrays[styp] or { false } {
+									g.type_definitions.writeln('typedef ${fixed} ${styp} [${len}];')
+									g.done_fixed_arrays[styp] = true
 								}
 							}
 						}
