@@ -187,7 +187,7 @@ pub fn (h ServerHandle) wait_till_running(params WaitTillRunningParams) !int {
 	if h.ptr == unsafe { nil } {
 		return error('server handle is not initialized')
 	}
-	$if linux || bsd {
+	$if linux || bsd || windows {
 		mut server := unsafe { &Server(h.ptr) }
 		return server.wait_till_running_impl(params)!
 	} $else {
@@ -200,7 +200,7 @@ pub fn (h ServerHandle) shutdown(params ShutdownParams) ! {
 	if h.ptr == unsafe { nil } {
 		return error('server handle is not initialized')
 	}
-	$if linux || bsd {
+	$if linux || bsd || windows {
 		mut server := unsafe { &Server(h.ptr) }
 		server.shutdown_impl(params)!
 	} $else {

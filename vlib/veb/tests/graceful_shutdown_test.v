@@ -1,4 +1,4 @@
-// vtest build: !windows && !tinyc // fasthttp.Server.run is not implemented on windows; the test hangs intermittently when built with tcc on linux CI
+// vtest build: !tinyc // the test hangs intermittently when built with tcc on linux CI
 import net
 import net.http
 import time
