@@ -1,5 +1,5 @@
 module fasthttp
-f
+
 import net
 import sync.stdatomic
 import time
